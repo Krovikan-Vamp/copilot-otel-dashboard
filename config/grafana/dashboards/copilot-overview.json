@@ -46,7 +46,7 @@
       "targets": [
         {
           "datasource": "Prometheus",
-          "expr": "sum(increase(gen_ai_client_operation_duration_seconds_count[24h]))",
+          "expr": "sum(increase(gen_ai_client_operation_duration_count[24h]))",
           "legendFormat": "Operations",
           "refId": "A"
         }
@@ -61,8 +61,8 @@
             "mode": "absolute",
             "steps": [
               { "color": "green", "value": null },
-              { "color": "yellow", "value": 500 },
-              { "color": "red", "value": 2000 }
+              { "color": "yellow", "value": 2 },
+              { "color": "red", "value": 10 }
             ]
           },
           "unit": "s"
@@ -83,7 +83,7 @@
       "targets": [
         {
           "datasource": "Prometheus",
-          "expr": "histogram_quantile(0.95, sum(rate(gen_ai_client_operation_duration_seconds_bucket[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(gen_ai_client_operation_duration_bucket[5m])) by (le))",
           "legendFormat": "p95",
           "refId": "A"
         }
@@ -189,7 +189,7 @@
       "targets": [
         {
           "datasource": "Prometheus",
-          "expr": "sum(rate(gen_ai_client_operation_duration_seconds_count[2m])) by (gen_ai_request_model)",
+          "expr": "sum(rate(gen_ai_client_operation_duration_count[2m])) by (gen_ai_request_model)",
           "legendFormat": "{{gen_ai_request_model}}",
           "refId": "A"
         }
@@ -216,19 +216,19 @@
       "targets": [
         {
           "datasource": "Prometheus",
-          "expr": "histogram_quantile(0.50, sum(rate(gen_ai_client_operation_duration_seconds_bucket[2m])) by (le))",
+          "expr": "histogram_quantile(0.50, sum(rate(gen_ai_client_operation_duration_bucket[2m])) by (le))",
           "legendFormat": "p50",
           "refId": "A"
         },
         {
           "datasource": "Prometheus",
-          "expr": "histogram_quantile(0.95, sum(rate(gen_ai_client_operation_duration_seconds_bucket[2m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(gen_ai_client_operation_duration_bucket[2m])) by (le))",
           "legendFormat": "p95",
           "refId": "B"
         },
         {
           "datasource": "Prometheus",
-          "expr": "histogram_quantile(0.99, sum(rate(gen_ai_client_operation_duration_seconds_bucket[2m])) by (le))",
+          "expr": "histogram_quantile(0.99, sum(rate(gen_ai_client_operation_duration_bucket[2m])) by (le))",
           "legendFormat": "p99",
           "refId": "C"
         }
@@ -272,15 +272,8 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 5 },
-              { "color": "red", "value": 15 }
-            ]
-          },
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 },
           "unit": "s"
         },
         "overrides": []
@@ -288,24 +281,21 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
       "id": 17,
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"] },
-        "orientation": "auto",
-        "textMode": "auto",
-        "colorMode": "background",
-        "graphMode": "area"
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
       },
       "title": "Time to First Token (p50 / p95)",
-      "type": "stat",
+      "type": "timeseries",
       "targets": [
         {
           "datasource": "Prometheus",
-          "expr": "histogram_quantile(0.50, sum(rate(copilot_chat_time_to_first_token_seconds_bucket[5m])) by (le))",
+          "expr": "histogram_quantile(0.50, sum(rate(copilot_chat_time_to_first_token_bucket[5m])) by (le))",
           "legendFormat": "p50 TTFT",
           "refId": "A"
         },
         {
           "datasource": "Prometheus",
-          "expr": "histogram_quantile(0.95, sum(rate(copilot_chat_time_to_first_token_seconds_bucket[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(copilot_chat_time_to_first_token_bucket[5m])) by (le))",
           "legendFormat": "p95 TTFT",
           "refId": "B"
         }
@@ -334,7 +324,7 @@
         "tooltip": { "mode": "multi" },
         "legend": { "displayMode": "list", "placement": "bottom" }
       },
-      "title": "Tool Invocations by Name (copilot_chat.tool.call.count)",
+      "title": "Tool Invocations by Name",
       "type": "timeseries",
       "targets": [
         {
@@ -366,13 +356,13 @@
       "targets": [
         {
           "datasource": "Prometheus",
-          "expr": "histogram_quantile(0.50, sum(rate(copilot_chat_agent_invocation_duration_seconds_bucket[5m])) by (le))",
+          "expr": "histogram_quantile(0.50, sum(rate(copilot_chat_agent_invocation_duration_bucket[5m])) by (le))",
           "legendFormat": "p50",
           "refId": "A"
         },
         {
           "datasource": "Prometheus",
-          "expr": "histogram_quantile(0.95, sum(rate(copilot_chat_agent_invocation_duration_seconds_bucket[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(copilot_chat_agent_invocation_duration_bucket[5m])) by (le))",
           "legendFormat": "p95",
           "refId": "B"
         }
@@ -409,5 +399,5 @@
   "timezone": "browser",
   "title": "GitHub Copilot — OTEL Dashboard",
   "uid": "copilot-otel-overview",
-  "version": 2
+  "version": 3
 }
