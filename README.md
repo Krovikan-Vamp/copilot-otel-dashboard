@@ -1,70 +1,62 @@
 # copilot-otel-dashboard
 
-A self-hosted OpenTelemetry monitoring stack for GitHub Copilot Chat in VS Code **and your own applications**.
+A local OpenTelemetry observability hub. Ships with:
 
-This repo is now structured as a **one-stop shop** for dashboards across:
+- **GitHub Copilot Chat** metrics, traces, and logs out of the box
+- **Multi-app support** — wire in any service with a `service.name` and two env vars
+- **Grafana** dashboards for Copilot, Cyrene Labs, InfraPeek, and a cross-service overview
+- **Full OTEL stack** — Prometheus (metrics) · Tempo (traces) · Loki (logs)
 
-- GitHub Copilot / VS Code agent telemetry
-- Cyrene Labs
-- InfraPeek
-- any future OTEL-enabled app that exports metrics, logs, and traces
-
-## Core idea
-
-Everything ships OTLP into the same collector.
-Use `service.name` to separate sources.
-Grafana provides:
-
-- a dedicated `GitHub Copilot` folder
-- an `Applications` folder
-- a reusable application dashboard template driven by a service selector
-- starter dashboards for `cyrene-labs` and `infrapeek`
-
-## Services
-
-| Service | Purpose | Port |
-|---|---|---|
-| `otel-collector` | Receives OTLP from Copilot and your apps | 4317, 4318 |
-| `prometheus` | Metrics store | 9090 |
-| `tempo` | Trace store | 3200 |
-| `grafana` | Dashboards and traces | 3000 |
-
-## Quick start
+## Quick Start
 
 ```bash
-git clone https://github.com/Krovikan-Vamp/copilot-otel-dashboard.git
+git clone https://github.com/Krovikan-Vamp/copilot-otel-dashboard
 cd copilot-otel-dashboard
 cp .env.example .env
 docker compose up -d
 ```
 
-Then instrument apps to point at:
+Grafana → http://localhost:3000 (admin / copilot)
 
-- OTLP gRPC: `localhost:4317`
-- OTLP HTTP: `http://localhost:4318`
+## VS Code Setup
 
-with `service.name` values such as:
+Add to your `settings.json`:
 
-- `copilot-chat`
-- `cyrene-labs`
-- `infrapeek`
+```json
+{
+  "github.copilot.chat.otel.enabled": true,
+  "github.copilot.chat.otel.exporterType": "otlp-http",
+  "github.copilot.chat.otel.otlpEndpoint": "http://localhost:4318",
+  "github.copilot.chat.otel.captureContent": true
+}
+```
 
-## Included dashboards
+## Adding a New App
 
-### GitHub Copilot
-- existing Copilot overview dashboard
+See **[docs/onboarding-new-app.md](docs/onboarding-new-app.md)** for the full guide.
 
-### Applications
-- `Application OTEL Dashboard` — choose a service from a variable dropdown
-- `Cyrene Labs Overview`
-- `InfraPeek Overview`
+TL;DR — set two env vars in your app and get instant metrics/traces/logs:
 
-## Adding a new app
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+OTEL_SERVICE_NAME=your-app-name
+```
 
-1. Set `service.name` in the app
-2. Export OTLP to this collector
-3. Open Grafana → Applications → Application OTEL Dashboard
-4. Pick the service from the dropdown
-5. Clone that dashboard if you want an app-specific version
+## Stack
 
-See [`docs/ADDING-APPS.md`](./docs/ADDING-APPS.md).
+| Service | Port | Purpose |
+|---|---|---|
+| otel-collector | 4317 (gRPC), 4318 (HTTP) | OTLP ingress for all apps |
+| Prometheus | 9090 | Metrics storage |
+| Loki | 3100 | Log storage |
+| Tempo | 3200 | Trace storage |
+| Grafana | 3000 | Dashboards |
+
+## Dashboards
+
+| Dashboard | Description |
+|---|---|
+| Service Overview | Cross-app throughput, LLM ops, and logs |
+| GitHub Copilot Chat | Chat sessions, tool calls, token usage, latency |
+| Cyrene Labs | HTTP performance, traces, logs |
+| InfraPeek | HTTP performance, infra checks, traces, logs |

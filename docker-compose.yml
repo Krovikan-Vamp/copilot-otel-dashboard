@@ -6,8 +6,10 @@ services:
 
   # ──────────────────────────────────────────────
   # OpenTelemetry Collector
-  # Receives spans/metrics/logs from VS Code Copilot
-  # over OTLP HTTP (4318) and OTLP gRPC (4317)
+  # Receives spans/metrics/logs from any app over
+  # OTLP HTTP (4318) or OTLP gRPC (4317).
+  # Tag your app with service.name and it will
+  # appear automatically in all dashboards.
   # ──────────────────────────────────────────────
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.102.0
@@ -16,12 +18,14 @@ services:
     volumes:
       - ./config/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
     ports:
-      - "4317:4317"   # OTLP gRPC
-      - "4318:4318"   # OTLP HTTP  ← VS Code points here
+      - "4317:4317"   # OTLP gRPC  ← point any app here
+      - "4318:4318"   # OTLP HTTP  ← VS Code / browser apps point here
       - "8888:8888"   # Collector self-metrics (Prometheus scrape)
       - "8889:8889"   # Prometheus exporter for pipeline metrics
     networks:
       - otel
+    depends_on:
+      - loki
 
   # ──────────────────────────────────────────────
   # Prometheus — stores OTEL metrics
@@ -38,6 +42,24 @@ services:
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.retention.time=30d
+    networks:
+      - otel
+
+  # ──────────────────────────────────────────────
+  # Loki — log aggregation backend
+  # Receives logs forwarded by the OTEL collector.
+  # Queryable in Grafana with LogQL.
+  # ──────────────────────────────────────────────
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: loki
+    restart: unless-stopped
+    command: ["-config.file=/etc/loki/config.yaml"]
+    volumes:
+      - ./config/loki.yaml:/etc/loki/config.yaml:ro
+      - loki-data:/loki
+    ports:
+      - "3100:3100"   # Loki HTTP API
     networks:
       - otel
 
@@ -61,6 +83,7 @@ services:
     depends_on:
       - prometheus
       - tempo
+      - loki
     networks:
       - otel
 
@@ -86,6 +109,7 @@ volumes:
   prometheus-data:
   grafana-data:
   tempo-data:
+  loki-data:
 
 networks:
   otel:

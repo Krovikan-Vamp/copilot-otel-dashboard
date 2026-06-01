@@ -1,19 +1,23 @@
-# Multi-source OpenTelemetry Collector configuration
+# ─────────────────────────────────────────────────────────────────────────────
+# Multi-source OpenTelemetry Collector — the OTEL hub
+# ─────────────────────────────────────────────────────────────────────────────
 #
-# This stack is designed to be your one-stop observability hub.
-# Any app can send OTLP metrics / traces / logs here.
+# This collector is your one-stop ingress for metrics, traces, and logs.
+# Any app can send OTLP to :4317 (gRPC) or :4318 (HTTP).
 #
-# Recommended pattern for each app:
-# - set service.name to the app name (e.g. cyrene-labs, infrapeek)
-# - optionally set deployment.environment (dev, staging, prod)
-# - export OTLP to this collector on :4317 or :4318
+# REQUIRED resource attributes on every app:
+#   service.name              e.g. cyrene-labs-api, infrapeek, copilot-chat
+#   deployment.environment    dev | staging | prod  (defaults to "local" below)
 #
-# Existing first-class source:
-# - copilot-chat (VS Code / GitHub Copilot Chat)
+# OPTIONAL but recommended:
+#   service.namespace         e.g. cyrene-labs, infrapeek
+#   service.version           e.g. 1.4.2
 #
-# Additional examples added:
-# - cyrene-labs
-# - infrapeek
+# First-class sources already configured:
+#   copilot-chat       — VS Code / GitHub Copilot Chat
+#   cyrene-labs-api    — Cyrene Labs backend
+#   infrapeek          — InfraPeek app
+# ─────────────────────────────────────────────────────────────────────────────
 
 receivers:
   otlp:
@@ -26,6 +30,7 @@ receivers:
           allowed_origins:
             - "*"
 
+  # Scrape the collector's own self-metrics
   prometheus:
     config:
       scrape_configs:
@@ -39,12 +44,14 @@ processors:
     send_batch_size: 1000
     timeout: 5s
 
+  # Stamp a default environment if the app didn't set one
   resource/defaults:
     attributes:
       - key: deployment.environment
         value: local
         action: upsert
 
+  # Hash sensitive gen_ai / copilot fields before storage
   attributes/redact:
     actions:
       - key: "gen_ai.input.messages"
@@ -59,14 +66,27 @@ processors:
         action: hash
 
 exporters:
+  # Prometheus — all metrics land here, queryable by service.name label
   prometheus:
     endpoint: "0.0.0.0:8889"
     namespace: ""
+    resource_to_telemetry_conversion:
+      enabled: true   # promotes resource attrs (service.name, etc.) to metric labels
 
+  # Tempo — all traces
   otlp/tempo:
     endpoint: tempo:4317
     tls:
       insecure: true
+
+  # Loki — all logs
+  loki:
+    endpoint: http://loki:3100/loki/api/v1/push
+    default_labels_enabled:
+      exporter: false
+      job: true
+    headers:
+      Content-Type: application/json
 
   debug:
     verbosity: normal
@@ -86,4 +106,4 @@ service:
     logs:
       receivers: [otlp]
       processors: [batch, resource/defaults, attributes/redact]
-      exporters: [debug]
+      exporters: [loki, debug]

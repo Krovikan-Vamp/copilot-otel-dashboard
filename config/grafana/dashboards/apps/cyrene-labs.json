@@ -1,0 +1,172 @@
+{
+  "uid": "cyrene-labs",
+  "title": "Cyrene Labs",
+  "tags": ["cyrene-labs", "app"],
+  "timezone": "browser",
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "templating": {
+    "list": [
+      {
+        "name": "environment",
+        "label": "Environment",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(deployment_environment)",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".*"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Overview",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "id": 2,
+      "title": "Request Rate (5m)",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "options": { "colorMode": "background", "graphMode": "area" },
+      "targets": [{
+        "expr": "sum(rate(http_server_request_duration_count{service_name=~\"cyrene-labs.*\"}[5m]))",
+        "legendFormat": "req/s"
+      }]
+    },
+    {
+      "id": 3,
+      "title": "P95 Response Time (ms)",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "fieldConfig": { "defaults": { "unit": "ms" } },
+      "options": { "colorMode": "background", "graphMode": "none" },
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket{service_name=~\"cyrene-labs.*\"}[5m]))) * 1000",
+        "legendFormat": "p95"
+      }]
+    },
+    {
+      "id": 4,
+      "title": "Error Rate %",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "fieldConfig": { "defaults": { "unit": "percent" } },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 1 },
+            { "color": "red", "value": 5 }
+          ]
+        }
+      },
+      "targets": [{
+        "expr": "100 * sum(rate(http_server_request_duration_count{service_name=~\"cyrene-labs.*\", http_response_status_code=~\"5..\"}[5m])) / sum(rate(http_server_request_duration_count{service_name=~\"cyrene-labs.*\"}[5m]))",
+        "legendFormat": "error %"
+      }]
+    },
+    {
+      "id": 5,
+      "title": "Active Spans",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "options": { "colorMode": "background", "graphMode": "none" },
+      "targets": [{
+        "expr": "sum(rate(otelcol_receiver_accepted_spans_total{service_name=~\"cyrene-labs.*\"}[1m]))",
+        "legendFormat": "spans/s"
+      }]
+    },
+    {
+      "id": 6,
+      "type": "row",
+      "title": "HTTP Performance",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 }
+    },
+    {
+      "id": 7,
+      "title": "Request Rate over Time",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "targets": [{
+        "expr": "sum by (http_route) (rate(http_server_request_duration_count{service_name=~\"cyrene-labs.*\"}[5m]))",
+        "legendFormat": "{{http_route}}"
+      }]
+    },
+    {
+      "id": 8,
+      "title": "Latency Percentiles (ms)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "fieldConfig": { "defaults": { "unit": "ms" } },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(http_server_request_duration_bucket{service_name=~\"cyrene-labs.*\"}[5m]))) * 1000",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket{service_name=~\"cyrene-labs.*\"}[5m]))) * 1000",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_request_duration_bucket{service_name=~\"cyrene-labs.*\"}[5m]))) * 1000",
+          "legendFormat": "p99"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "row",
+      "title": "Traces",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 }
+    },
+    {
+      "id": 10,
+      "title": "Recent Traces — Cyrene Labs",
+      "type": "traces",
+      "datasource": { "type": "tempo", "uid": "tempo" },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 15 },
+      "targets": [{
+        "queryType": "traceql",
+        "query": "{resource.service.name=~\"cyrene-labs.*\"}",
+        "limit": 20
+      }]
+    },
+    {
+      "id": 11,
+      "type": "row",
+      "title": "Logs",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 25 }
+    },
+    {
+      "id": 12,
+      "title": "Cyrene Labs Logs",
+      "type": "logs",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 26 },
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true,
+        "enableLogDetails": true
+      },
+      "targets": [{
+        "expr": "{service_name=~\"cyrene-labs.*\"}",
+        "legendFormat": ""
+      }]
+    }
+  ]
+}

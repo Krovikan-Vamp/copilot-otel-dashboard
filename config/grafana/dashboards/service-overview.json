@@ -1,0 +1,183 @@
+{
+  "uid": "service-overview",
+  "title": "Service Overview",
+  "tags": ["hub", "overview"],
+  "timezone": "browser",
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "label": "Service",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(up, job)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*"
+      },
+      {
+        "name": "environment",
+        "label": "Environment",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(deployment_environment)",
+        "refresh": 2,
+        "multi": false,
+        "includeAll": true,
+        "allValue": ".*"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Active Services",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "id": 2,
+      "title": "Services Sending Metrics",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "options": { "colorMode": "background", "graphMode": "none" },
+      "targets": [{
+        "expr": "count(count by (service_name) (gen_ai_client_operation_duration_count or otelcol_receiver_accepted_metric_points))",
+        "legendFormat": "Services"
+      }]
+    },
+    {
+      "id": 3,
+      "title": "Total Operations (5m rate)",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "options": { "colorMode": "background", "graphMode": "area" },
+      "targets": [{
+        "expr": "sum(rate(otelcol_receiver_accepted_spans_total[5m])) + sum(rate(otelcol_receiver_accepted_metric_points_total[5m]))",
+        "legendFormat": "ops/s"
+      }]
+    },
+    {
+      "id": 4,
+      "title": "Log Lines Ingested (5m rate)",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "options": { "colorMode": "background", "graphMode": "area" },
+      "targets": [{
+        "expr": "sum(rate(otelcol_receiver_accepted_log_records_total[5m]))",
+        "legendFormat": "logs/s"
+      }]
+    },
+    {
+      "id": 5,
+      "title": "Collector Drop Rate",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            { "color": "green", "value": null },
+            { "color": "red", "value": 1 }
+          ]
+        }
+      },
+      "targets": [{
+        "expr": "sum(rate(otelcol_processor_dropped_spans_total[5m])) + sum(rate(otelcol_processor_dropped_metric_points_total[5m])) + sum(rate(otelcol_processor_dropped_log_records_total[5m]))",
+        "legendFormat": "dropped/s"
+      }]
+    },
+    {
+      "id": 6,
+      "type": "row",
+      "title": "Throughput by Service",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 }
+    },
+    {
+      "id": 7,
+      "title": "Metric Points / sec by Service",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [{
+        "expr": "sum by (service_name) (rate(otelcol_receiver_accepted_metric_points_total[5m]))",
+        "legendFormat": "{{service_name}}"
+      }]
+    },
+    {
+      "id": 8,
+      "title": "Spans / sec by Service",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [{
+        "expr": "sum by (service_name) (rate(otelcol_receiver_accepted_spans_total[5m]))",
+        "legendFormat": "{{service_name}}"
+      }]
+    },
+    {
+      "id": 9,
+      "type": "row",
+      "title": "LLM Operations (Copilot + any gen_ai instrumented app)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 }
+    },
+    {
+      "id": 10,
+      "title": "LLM Operations / sec by Service",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 15 },
+      "targets": [{
+        "expr": "sum by (service_name) (rate(gen_ai_client_operation_duration_count[5m]))",
+        "legendFormat": "{{service_name}}"
+      }]
+    },
+    {
+      "id": 11,
+      "title": "P95 LLM Latency by Service (ms)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
+      "fieldConfig": { "defaults": { "unit": "ms" } },
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum by (service_name, le) (rate(gen_ai_client_operation_duration_bucket[5m]))) * 1000",
+        "legendFormat": "{{service_name}} p95"
+      }]
+    },
+    {
+      "id": 12,
+      "type": "row",
+      "title": "Logs",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 }
+    },
+    {
+      "id": 13,
+      "title": "All Service Logs",
+      "type": "logs",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 24 },
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true,
+        "enableLogDetails": true
+      },
+      "targets": [{
+        "expr": "{service_name=~\"$service\"}",
+        "legendFormat": ""
+      }]
+    }
+  ]
+}
