@@ -12,13 +12,17 @@
 #   service.namespace         e.g. cyrene-labs, infrapeek
 #   service.version           e.g. 1.4.2
 #
+# NOTE on Loki exporter Content-Type:
+#   Do NOT set Content-Type: application/json on the Loki exporter.
+#   The otlphttp loki exporter sends protobuf by default. Overriding the
+#   Content-Type header to JSON causes Loki to reject the payload with
+#   HTTP 400 "readObjectStart: expect { or n, but found \x..." because it
+#   tries to parse binary protobuf as JSON.
+#
 # NOTE on resource_to_telemetry_conversion:
-#   This flag is intentionally NOT set on the prometheus exporter.
-#   The collector's self-metrics (scraped via the prometheus receiver) already
-#   carry job/instance labels natively. Promoting resource attributes on top
-#   of those causes "duplicate label names" errors in the Prometheus client.
-#   gen_ai_* and copilot_chat_* metrics carry service.name as a native label
-#   already, so the flag is not needed.
+#   Intentionally NOT set on the prometheus exporter. The collector's
+#   self-metrics already carry job/instance labels natively — promoting
+#   resource attributes on top causes duplicate label errors.
 # ─────────────────────────────────────────────────────────────────────────────
 
 receivers:
@@ -81,13 +85,14 @@ exporters:
       insecure: true
 
   # Loki — all logs
+  # No Content-Type header override — the exporter sends protobuf by default
+  # and Loki 3.x expects protobuf on /loki/api/v1/push.
+  # Setting Content-Type: application/json breaks it with HTTP 400.
   loki:
     endpoint: http://loki:3100/loki/api/v1/push
     default_labels_enabled:
       exporter: false
       job: true
-    headers:
-      Content-Type: application/json
 
   debug:
     verbosity: normal
