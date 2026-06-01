@@ -8,4 +8,13 @@ providers:
     disableDeletion: false
     updateIntervalSeconds: 30
     options:
-      path: /var/lib/grafana/dashboards
+      path: /var/lib/grafana/dashboards/copilot
+
+  - name: app-dashboards
+    orgId: 1
+    folder: "Applications"
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards/apps

@@ -1,0 +1,52 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Request Rate",
+      "id": 1,
+      "datasource": "Prometheus",
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background", "graphMode": "none" },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(http_server_request_duration_count{service_name=\"cyrene-labs\"}[5m]))" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "P95 Latency",
+      "id": 2,
+      "datasource": "Prometheus",
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background", "graphMode": "none" },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_bucket{service_name=\"cyrene-labs\"}[5m])) by (le))" }
+      ]
+    },
+    {
+      "type": "traces",
+      "title": "Recent Traces",
+      "id": 3,
+      "datasource": "Tempo",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 4 },
+      "targets": [
+        { "refId": "A", "queryType": "traceql", "query": "{resource.service.name=\"cyrene-labs\"}" }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["cyrene", "otel"],
+  "time": { "from": "now-6h", "to": "now" },
+  "timezone": "browser",
+  "title": "Cyrene Labs Overview",
+  "uid": "cyrene-labs-overview",
+  "version": 1
+}

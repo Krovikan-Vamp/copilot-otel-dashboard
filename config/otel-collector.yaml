@@ -1,15 +1,19 @@
-# OpenTelemetry Collector configuration
-# Receives Copilot Chat telemetry from VS Code, exports to Prometheus + Tempo
+# Multi-source OpenTelemetry Collector configuration
 #
-# Metric names per official VS Code OTEL docs (updated 2026-05-28):
-#   gen_ai.client.operation.duration   - LLM API call duration (seconds, histogram)
-#   gen_ai.client.token.usage          - Token counts input/output (histogram)
-#   copilot_chat.tool.call.count       - Tool invocations counter
-#   copilot_chat.tool.call.duration    - Tool execution latency (ms, histogram)
-#   copilot_chat.agent.invocation.duration - Agent end-to-end (seconds, histogram)
-#   copilot_chat.agent.turn.count      - LLM round-trips per invocation
-#   copilot_chat.session.count         - Chat sessions started
-#   copilot_chat.time_to_first_token   - TTFT (seconds, histogram)
+# This stack is designed to be your one-stop observability hub.
+# Any app can send OTLP metrics / traces / logs here.
+#
+# Recommended pattern for each app:
+# - set service.name to the app name (e.g. cyrene-labs, infrapeek)
+# - optionally set deployment.environment (dev, staging, prod)
+# - export OTLP to this collector on :4317 or :4318
+#
+# Existing first-class source:
+# - copilot-chat (VS Code / GitHub Copilot Chat)
+#
+# Additional examples added:
+# - cyrene-labs
+# - infrapeek
 
 receivers:
   otlp:
@@ -20,9 +24,8 @@ receivers:
         endpoint: 0.0.0.0:4318
         cors:
           allowed_origins:
-            - "*"   # Restrict in production
+            - "*"
 
-  # Scrape the collector's own internal metrics
   prometheus:
     config:
       scrape_configs:
@@ -36,16 +39,12 @@ processors:
     send_batch_size: 1000
     timeout: 5s
 
-  # service.name is already "copilot-chat" (set by the extension).
-  # We only inject deployment.environment here.
-  resource:
+  resource/defaults:
     attributes:
       - key: deployment.environment
-        value: "local"
-        action: insert
+        value: local
+        action: upsert
 
-  # Hash content-capture attributes (only populated when captureContent=true)
-  # Real attribute keys per OTel GenAI Semantic Conventions:
   attributes/redact:
     actions:
       - key: "gen_ai.input.messages"
@@ -60,20 +59,15 @@ processors:
         action: hash
 
 exporters:
-  # Metrics -> Prometheus (pull-based)
   prometheus:
     endpoint: "0.0.0.0:8889"
     namespace: ""
-    # No custom namespace — metric names already include their namespace
-    # e.g. gen_ai_client_operation_duration_seconds (dots become underscores)
 
-  # Traces -> Tempo (push via OTLP gRPC)
   otlp/tempo:
     endpoint: tempo:4317
     tls:
       insecure: true
 
-  # Debug — comment out in production
   debug:
     verbosity: normal
 
@@ -81,15 +75,15 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [batch, resource, attributes/redact]
+      processors: [batch, resource/defaults, attributes/redact]
       exporters: [otlp/tempo, debug]
 
     metrics:
       receivers: [otlp, prometheus]
-      processors: [batch, resource]
+      processors: [batch, resource/defaults]
       exporters: [prometheus, debug]
 
     logs:
       receivers: [otlp]
-      processors: [batch, resource, attributes/redact]
+      processors: [batch, resource/defaults, attributes/redact]
       exporters: [debug]

@@ -1,0 +1,194 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "type": "row",
+      "title": "Application Overview",
+      "id": 1,
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "type": "stat",
+      "title": "Request Rate",
+      "id": 2,
+      "datasource": "Prometheus",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 5 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background", "graphMode": "none" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(http_server_request_duration_count{service_name=~\"$service\"}[5m]))",
+          "legendFormat": "Requests"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "P95 Latency",
+      "id": 3,
+      "datasource": "Prometheus",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 0.5 }, { "color": "red", "value": 2 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background", "graphMode": "none" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_bucket{service_name=~\"$service\"}[5m])) by (le))",
+          "legendFormat": "p95"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Error Rate",
+      "id": 4,
+      "datasource": "Prometheus",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 0.02 }, { "color": "red", "value": 0.05 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background", "graphMode": "none" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(http_server_request_duration_count{service_name=~\"$service\", http_response_status_code=~\"5..\"}[5m])) / clamp_min(sum(rate(http_server_request_duration_count{service_name=~\"$service\"}[5m])), 1)",
+          "legendFormat": "Error Rate"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Log Volume",
+      "id": 5,
+      "datasource": "Prometheus",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background", "graphMode": "none" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(log_record_count_total{service_name=~\"$service\"}[5m]))",
+          "legendFormat": "Logs"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Traffic & Performance",
+      "id": 10,
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 }
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP Request Rate by Route",
+      "id": 11,
+      "datasource": "Prometheus",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(http_server_request_duration_count{service_name=~\"$service\"}[2m])) by (http_route)",
+          "legendFormat": "{{http_route}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Latency by Route (p50 / p95)",
+      "id": 12,
+      "datasource": "Prometheus",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.50, sum(rate(http_server_request_duration_bucket{service_name=~\"$service\"}[2m])) by (le, http_route))",
+          "legendFormat": "p50 {{http_route}}"
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_bucket{service_name=~\"$service\"}[2m])) by (le, http_route))",
+          "legendFormat": "p95 {{http_route}}"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Tracing",
+      "id": 20,
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 }
+    },
+    {
+      "type": "traces",
+      "title": "Recent Application Traces",
+      "id": 21,
+      "datasource": "Tempo",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 15 },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "traceql",
+          "query": "{resource.service.name=~\"$service\"}"
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["otel", "apps", "template"],
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "type": "query",
+        "label": "Service",
+        "datasource": "Prometheus",
+        "definition": "label_values(target_info, service_name)",
+        "query": { "query": "label_values(target_info, service_name)", "refId": "StandardVariableQuery" },
+        "multi": false,
+        "includeAll": false,
+        "refresh": 2,
+        "sort": 1,
+        "current": { "selected": true, "text": "cyrene-labs", "value": "cyrene-labs" }
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timezone": "browser",
+  "title": "Application OTEL Dashboard",
+  "uid": "application-otel-template",
+  "version": 1
+}
