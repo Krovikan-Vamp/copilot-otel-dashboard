@@ -1,0 +1,92 @@
+version: "3.9"
+
+name: copilot-otel
+
+services:
+
+  # ──────────────────────────────────────────────
+  # OpenTelemetry Collector
+  # Receives spans/metrics/logs from VS Code Copilot
+  # over OTLP HTTP (4318) and OTLP gRPC (4317)
+  # ──────────────────────────────────────────────
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.102.0
+    container_name: otel-collector
+    restart: unless-stopped
+    volumes:
+      - ./config/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP  ← VS Code points here
+      - "8888:8888"   # Collector self-metrics (Prometheus scrape)
+      - "8889:8889"   # Prometheus exporter for pipeline metrics
+    networks:
+      - otel
+
+  # ──────────────────────────────────────────────
+  # Prometheus — stores OTEL metrics
+  # ──────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: prometheus
+    restart: unless-stopped
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=30d
+    networks:
+      - otel
+
+  # ──────────────────────────────────────────────
+  # Grafana — dashboards and visualisation
+  # ──────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana-oss:11.1.0
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: copilot          # change in prod
+      GF_FEATURE_TOGGLES_ENABLE: traceqlEditor
+    volumes:
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - tempo
+    networks:
+      - otel
+
+  # ──────────────────────────────────────────────
+  # Tempo — distributed tracing backend
+  # Receives traces forwarded by the OTEL collector
+  # ──────────────────────────────────────────────
+  tempo:
+    image: grafana/tempo:2.5.0
+    container_name: tempo
+    restart: unless-stopped
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./config/tempo.yaml:/etc/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    ports:
+      - "3200:3200"   # Tempo HTTP API + Grafana query
+      - "4317"        # Internal gRPC (used by collector, not exposed externally)
+    networks:
+      - otel
+
+volumes:
+  prometheus-data:
+  grafana-data:
+  tempo-data:
+
+networks:
+  otel:
+    driver: bridge

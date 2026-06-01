@@ -1,0 +1,28 @@
+{
+  // ─── GitHub Copilot Chat — OpenTelemetry export ───────────────────────────
+  //
+  // Copy these into your VS Code settings (Ctrl+Shift+P → "Open User Settings JSON")
+  // or into .vscode/settings.json in any workspace you want to monitor.
+  //
+  // Requires VS Code 1.119+ and GitHub Copilot Chat extension.
+  //
+  // The collector must be running before VS Code starts (docker compose up -d)
+  // ──────────────────────────────────────────────────────────────────────────
+
+  // Enable OTEL export from Copilot Chat
+  "github.copilot.chat.otel.enabled": true,
+
+  // Protocol: "otlp-http" sends to port 4318 (recommended for local dev)
+  // Use "otlp-grpc" if you prefer port 4317
+  "github.copilot.chat.otel.exporterType": "otlp-http",
+
+  // Point at the collector container exposed on localhost
+  "github.copilot.chat.otel.otlpEndpoint": "http://localhost:4318",
+
+  // Capture chat prompt/completion content in spans
+  // WARNING: disable if working with sensitive codebases
+  "github.copilot.chat.otel.captureContent": false,
+
+  // Optional: set a custom service name (useful if you run multiple machines)
+  // "github.copilot.chat.otel.serviceName": "copilot-chat-zack"
+}
