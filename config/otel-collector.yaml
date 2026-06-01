@@ -1,5 +1,15 @@
 # OpenTelemetry Collector configuration
 # Receives Copilot Chat telemetry from VS Code, exports to Prometheus + Tempo
+#
+# Metric names per official VS Code OTEL docs (updated 2026-05-28):
+#   gen_ai.client.operation.duration   - LLM API call duration (seconds, histogram)
+#   gen_ai.client.token.usage          - Token counts input/output (histogram)
+#   copilot_chat.tool.call.count       - Tool invocations counter
+#   copilot_chat.tool.call.duration    - Tool execution latency (ms, histogram)
+#   copilot_chat.agent.invocation.duration - Agent end-to-end (seconds, histogram)
+#   copilot_chat.agent.turn.count      - LLM round-trips per invocation
+#   copilot_chat.session.count         - Chat sessions started
+#   copilot_chat.time_to_first_token   - TTFT (seconds, histogram)
 
 receivers:
   otlp:
@@ -10,7 +20,7 @@ receivers:
         endpoint: 0.0.0.0:4318
         cors:
           allowed_origins:
-            - "*"          # Restrict to vscode-origin in production
+            - "*"   # Restrict in production
 
   # Scrape the collector's own internal metrics
   prometheus:
@@ -26,37 +36,44 @@ processors:
     send_batch_size: 1000
     timeout: 5s
 
-  # Add resource attributes so dashboards can filter by host / service
+  # service.name is already "copilot-chat" (set by the extension).
+  # We only inject deployment.environment here.
   resource:
     attributes:
-      - key: service.name
-        value: "copilot-chat"
-        action: insert
       - key: deployment.environment
         value: "local"
         action: insert
 
-  # Redact any captured content that might contain credentials
+  # Hash content-capture attributes (only populated when captureContent=true)
+  # Real attribute keys per OTel GenAI Semantic Conventions:
   attributes/redact:
     actions:
-      - key: "llm.prompt"
+      - key: "gen_ai.input.messages"
         action: hash
-      - key: "llm.completion"
+      - key: "gen_ai.output.messages"
+        action: hash
+      - key: "gen_ai.tool.definitions"
+        action: hash
+      - key: "gen_ai.tool.call.arguments"
+        action: hash
+      - key: "gen_ai.tool.call.result"
         action: hash
 
 exporters:
-  # Metrics → Prometheus (pull-based)
+  # Metrics -> Prometheus (pull-based)
   prometheus:
     endpoint: "0.0.0.0:8889"
-    namespace: copilot
+    namespace: ""
+    # No custom namespace — metric names already include their namespace
+    # e.g. gen_ai_client_operation_duration_seconds (dots become underscores)
 
-  # Traces → Tempo (push via OTLP gRPC)
+  # Traces -> Tempo (push via OTLP gRPC)
   otlp/tempo:
     endpoint: tempo:4317
     tls:
       insecure: true
 
-  # Debug logging — remove or comment out in production
+  # Debug — comment out in production
   debug:
     verbosity: normal
 

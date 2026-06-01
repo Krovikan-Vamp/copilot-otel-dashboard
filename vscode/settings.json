@@ -1,28 +1,33 @@
 {
   // ─── GitHub Copilot Chat — OpenTelemetry export ───────────────────────────
   //
-  // Copy these into your VS Code settings (Ctrl+Shift+P → "Open User Settings JSON")
-  // or into .vscode/settings.json in any workspace you want to monitor.
+  // Copy into: Ctrl+Shift+P -> "Open User Settings (JSON)"
+  // OR into .vscode/settings.json for per-workspace monitoring.
   //
-  // Requires VS Code 1.119+ and GitHub Copilot Chat extension.
+  // Requires VS Code 1.119+ and the GitHub Copilot Chat extension.
+  // The collector stack must be running before VS Code starts:
+  //   docker compose up -d
   //
-  // The collector must be running before VS Code starts (docker compose up -d)
+  // Official docs: https://code.visualstudio.com/docs/copilot/guides/monitoring-agents
   // ──────────────────────────────────────────────────────────────────────────
 
-  // Enable OTEL export from Copilot Chat
+  // Enable OTEL emission from Copilot Chat
   "github.copilot.chat.otel.enabled": true,
 
-  // Protocol: "otlp-http" sends to port 4318 (recommended for local dev)
-  // Use "otlp-grpc" if you prefer port 4317
+  // Exporter type: "otlp-http" (port 4318) | "otlp-grpc" (port 4317) | "console" | "file"
   "github.copilot.chat.otel.exporterType": "otlp-http",
 
-  // Point at the collector container exposed on localhost
+  // OTLP endpoint — points at the otel-collector container exposed on localhost
   "github.copilot.chat.otel.otlpEndpoint": "http://localhost:4318",
 
-  // Capture chat prompt/completion content in spans
-  // WARNING: disable if working with sensitive codebases
+  // Content capture: prompts, responses, tool args are NOT captured by default.
+  // Only enable on non-sensitive workspaces.
   "github.copilot.chat.otel.captureContent": false,
 
-  // Optional: set a custom service name (useful if you run multiple machines)
-  // "github.copilot.chat.otel.serviceName": "copilot-chat-zack"
+  // Optional: persist spans to local SQLite for offline inspection
+  // Enables the "Chat: Export Agent Traces DB" command in VS Code.
+  // "github.copilot.chat.otel.dbSpanExporter.enabled": false,
+
+  // Optional: truncate large content attributes (0 = no limit)
+  // "github.copilot.chat.otel.maxAttributeSizeChars": 0
 }

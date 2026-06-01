@@ -2,7 +2,7 @@
   "__inputs": [],
   "__requires": [],
   "annotations": { "list": [] },
-  "description": "GitHub Copilot Chat — OTEL monitoring overview",
+  "description": "GitHub Copilot Chat — OTEL monitoring overview (metric names per official VS Code docs)",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -34,14 +34,20 @@
       },
       "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
       "id": 2,
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background", "graphMode": "none" },
-      "title": "Total Requests",
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "title": "LLM Operations (24h)",
       "type": "stat",
       "targets": [
         {
           "datasource": "Prometheus",
-          "expr": "sum(increase(copilot_llm_requests_total[24h]))",
-          "legendFormat": "Requests",
+          "expr": "sum(increase(gen_ai_client_operation_duration_seconds_count[24h]))",
+          "legendFormat": "Operations",
           "refId": "A"
         }
       ]
@@ -59,19 +65,25 @@
               { "color": "red", "value": 2000 }
             ]
           },
-          "unit": "ms"
+          "unit": "s"
         },
         "overrides": []
       },
       "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
       "id": 3,
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background", "graphMode": "none" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none"
+      },
       "title": "P95 LLM Latency",
       "type": "stat",
       "targets": [
         {
           "datasource": "Prometheus",
-          "expr": "histogram_quantile(0.95, sum(rate(copilot_llm_duration_milliseconds_bucket[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(gen_ai_client_operation_duration_seconds_bucket[5m])) by (le))",
           "legendFormat": "p95",
           "refId": "A"
         }
@@ -95,13 +107,19 @@
       },
       "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
       "id": 4,
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background", "graphMode": "none" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none"
+      },
       "title": "Tool Calls (24h)",
       "type": "stat",
       "targets": [
         {
           "datasource": "Prometheus",
-          "expr": "sum(increase(copilot_tool_invocations_total[24h]))",
+          "expr": "sum(increase(copilot_chat_tool_call_count_total[24h]))",
           "legendFormat": "Tool Calls",
           "refId": "A"
         }
@@ -116,23 +134,29 @@
             "mode": "absolute",
             "steps": [
               { "color": "green", "value": null },
-              { "color": "red", "value": 1 }
+              { "color": "orange", "value": 10 }
             ]
           },
-          "unit": "percent"
+          "unit": "short"
         },
         "overrides": []
       },
       "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
       "id": 5,
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background", "graphMode": "none" },
-      "title": "Error Rate",
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "title": "Chat Sessions (24h)",
       "type": "stat",
       "targets": [
         {
           "datasource": "Prometheus",
-          "expr": "100 * sum(rate(copilot_llm_errors_total[5m])) / (sum(rate(copilot_llm_requests_total[5m])) > 0)",
-          "legendFormat": "Error %",
+          "expr": "sum(increase(copilot_chat_session_count_total[24h]))",
+          "legendFormat": "Sessions",
           "refId": "A"
         }
       ]
@@ -141,7 +165,7 @@
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
       "id": 10,
-      "title": "📈 Request Trends",
+      "title": "📈 LLM Request Trends",
       "type": "row"
     },
     {
@@ -150,20 +174,23 @@
         "defaults": {
           "color": { "mode": "palette-classic" },
           "custom": { "lineWidth": 2, "fillOpacity": 10, "gradientMode": "opacity" },
-          "unit": "reqps"
+          "unit": "ops"
         },
         "overrides": []
       },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
       "id": 11,
-      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
-      "title": "LLM Request Rate",
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "title": "LLM Operations / sec by Model",
       "type": "timeseries",
       "targets": [
         {
           "datasource": "Prometheus",
-          "expr": "sum(rate(copilot_llm_requests_total[2m])) by (model)",
-          "legendFormat": "{{model}}",
+          "expr": "sum(rate(gen_ai_client_operation_duration_seconds_count[2m])) by (gen_ai_request_model)",
+          "legendFormat": "{{gen_ai_request_model}}",
           "refId": "A"
         }
       ]
@@ -174,31 +201,34 @@
         "defaults": {
           "color": { "mode": "palette-classic" },
           "custom": { "lineWidth": 2, "fillOpacity": 10 },
-          "unit": "ms"
+          "unit": "s"
         },
         "overrides": []
       },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
       "id": 12,
-      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
-      "title": "LLM Response Latency (p50 / p95 / p99)",
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "title": "LLM Response Duration (p50 / p95 / p99)",
       "type": "timeseries",
       "targets": [
         {
           "datasource": "Prometheus",
-          "expr": "histogram_quantile(0.50, sum(rate(copilot_llm_duration_milliseconds_bucket[2m])) by (le))",
+          "expr": "histogram_quantile(0.50, sum(rate(gen_ai_client_operation_duration_seconds_bucket[2m])) by (le))",
           "legendFormat": "p50",
           "refId": "A"
         },
         {
           "datasource": "Prometheus",
-          "expr": "histogram_quantile(0.95, sum(rate(copilot_llm_duration_milliseconds_bucket[2m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(gen_ai_client_operation_duration_seconds_bucket[2m])) by (le))",
           "legendFormat": "p95",
           "refId": "B"
         },
         {
           "datasource": "Prometheus",
-          "expr": "histogram_quantile(0.99, sum(rate(copilot_llm_duration_milliseconds_bucket[2m])) by (le))",
+          "expr": "histogram_quantile(0.99, sum(rate(gen_ai_client_operation_duration_seconds_bucket[2m])) by (le))",
           "legendFormat": "p99",
           "refId": "C"
         }
@@ -207,8 +237,8 @@
     {
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
-      "id": 20,
-      "title": "🔧 Agent & Tool Execution",
+      "id": 15,
+      "title": "📊 Token Usage",
       "type": "row"
     },
     {
@@ -222,15 +252,95 @@
         "overrides": []
       },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 15 },
-      "id": 21,
-      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
-      "title": "Tool Invocations by Tool Name",
+      "id": 16,
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "title": "Token Usage Rate by Type (input / output)",
       "type": "timeseries",
       "targets": [
         {
           "datasource": "Prometheus",
-          "expr": "sum(rate(copilot_tool_invocations_total[2m])) by (tool_name)",
-          "legendFormat": "{{tool_name}}",
+          "expr": "sum(rate(gen_ai_client_token_usage_sum[2m])) by (gen_ai_token_type)",
+          "legendFormat": "{{gen_ai_token_type}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 15 }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
+      "id": 17,
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "title": "Time to First Token (p50 / p95)",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.50, sum(rate(copilot_chat_time_to_first_token_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p50 TTFT",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.95, sum(rate(copilot_chat_time_to_first_token_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95 TTFT",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+      "id": 20,
+      "title": "🔧 Agent & Tool Execution",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "id": 21,
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "title": "Tool Invocations by Name (copilot_chat.tool.call.count)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(rate(copilot_chat_tool_call_count_total[2m])) by (gen_ai_tool_name)",
+          "legendFormat": "{{gen_ai_tool_name}}",
           "refId": "A"
         }
       ]
@@ -240,26 +350,29 @@
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
-          "custom": { "fillOpacity": 10 },
-          "unit": "short"
+          "custom": { "lineWidth": 2, "fillOpacity": 10 },
+          "unit": "s"
         },
         "overrides": []
       },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
       "id": 22,
-      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
-      "title": "Agent Run Duration (p50 / p95)",
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "title": "Agent Invocation Duration (p50 / p95)",
       "type": "timeseries",
       "targets": [
         {
           "datasource": "Prometheus",
-          "expr": "histogram_quantile(0.50, sum(rate(copilot_agent_duration_milliseconds_bucket[5m])) by (le))",
+          "expr": "histogram_quantile(0.50, sum(rate(copilot_chat_agent_invocation_duration_seconds_bucket[5m])) by (le))",
           "legendFormat": "p50",
           "refId": "A"
         },
         {
           "datasource": "Prometheus",
-          "expr": "histogram_quantile(0.95, sum(rate(copilot_agent_duration_milliseconds_bucket[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(copilot_chat_agent_invocation_duration_seconds_bucket[5m])) by (le))",
           "legendFormat": "p95",
           "refId": "B"
         }
@@ -267,25 +380,22 @@
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 32 },
       "id": 30,
       "title": "🔍 Trace Explorer",
       "type": "row"
     },
     {
       "datasource": "Tempo",
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 24 },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 33 },
       "id": 31,
-      "title": "Recent Copilot Traces",
+      "title": "Recent Copilot Traces (service.name=copilot-chat)",
       "type": "traces",
-      "options": {
-        "query": "{resource.service.name=\"copilot-chat\"}"
-      },
       "targets": [
         {
           "datasource": "Tempo",
           "queryType": "traceql",
-          "query": "{resource.service.name=\"copilot-chat\"} | select(span.http.method, span.http.status_code)",
+          "query": "{resource.service.name=\"copilot-chat\"} | select(span.gen_ai.agent.name, span.gen_ai.request.model, span.gen_ai.usage.input_tokens, span.gen_ai.usage.output_tokens)",
           "refId": "A"
         }
       ]
@@ -299,5 +409,5 @@
   "timezone": "browser",
   "title": "GitHub Copilot — OTEL Dashboard",
   "uid": "copilot-otel-overview",
-  "version": 1
+  "version": 2
 }
