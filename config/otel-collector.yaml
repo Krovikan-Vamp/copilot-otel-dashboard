@@ -2,7 +2,6 @@
 # Multi-source OpenTelemetry Collector — the OTEL hub
 # ─────────────────────────────────────────────────────────────────────────────
 #
-# This collector is your one-stop ingress for metrics, traces, and logs.
 # Any app can send OTLP to :4317 (gRPC) or :4318 (HTTP).
 #
 # REQUIRED resource attributes on every app:
@@ -13,10 +12,13 @@
 #   service.namespace         e.g. cyrene-labs, infrapeek
 #   service.version           e.g. 1.4.2
 #
-# First-class sources already configured:
-#   copilot-chat       — VS Code / GitHub Copilot Chat
-#   cyrene-labs-api    — Cyrene Labs backend
-#   infrapeek          — InfraPeek app
+# NOTE on resource_to_telemetry_conversion:
+#   This flag is intentionally NOT set on the prometheus exporter.
+#   The collector's self-metrics (scraped via the prometheus receiver) already
+#   carry job/instance labels natively. Promoting resource attributes on top
+#   of those causes "duplicate label names" errors in the Prometheus client.
+#   gen_ai_* and copilot_chat_* metrics carry service.name as a native label
+#   already, so the flag is not needed.
 # ─────────────────────────────────────────────────────────────────────────────
 
 receivers:
@@ -66,12 +68,11 @@ processors:
         action: hash
 
 exporters:
-  # Prometheus — all metrics land here, queryable by service.name label
+  # Prometheus — all metrics land here, queryable by service.name label.
+  # resource_to_telemetry_conversion is intentionally disabled — see note above.
   prometheus:
     endpoint: "0.0.0.0:8889"
     namespace: ""
-    resource_to_telemetry_conversion:
-      enabled: true   # promotes resource attrs (service.name, etc.) to metric labels
 
   # Tempo — all traces
   otlp/tempo:
